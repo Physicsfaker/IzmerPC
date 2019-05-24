@@ -33,7 +33,7 @@ namespace IzmerPC
             currentSerial.BaudRate = baudRate;
             currentSerial.Parity = Parity.None;
             currentSerial.DataBits = 8;
-            currentSerial.StopBits = StopBits.One;
+            currentSerial.StopBits = StopBits.One; 
             currentSerial.Handshake = Handshake.None;
             currentSerial.RtsEnable = true;
             ReadTimeout = 500;

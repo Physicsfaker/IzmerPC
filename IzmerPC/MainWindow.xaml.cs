@@ -36,6 +36,7 @@ namespace IzmerPC
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e) //действия при закрытии приложения
         {
             ComPort.Close();
+            App.Current.Shutdown();
         }
 
         void WriteLog(string message)
@@ -75,9 +76,10 @@ namespace IzmerPC
         #endregion
 
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private  void Button_Click(object sender, RoutedEventArgs e)
         {
-           /// LogWindow
+            LogWindow secondWindow = new LogWindow();
+            secondWindow.Show();
         }
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
