@@ -14,14 +14,28 @@ using System.Windows.Shapes;
 
 namespace IzmerPC
 {
-    /// <summary>
-    /// Interaction logic for LogWindow.xaml
-    /// </summary>
     public partial class LogWindow : Window
     {
         public LogWindow()
         {
             InitializeComponent();
+            ComPort.NewDataRecived += rdata => AddDataInListBox(rdata, true);
+            ComPort.NewDataTransfered += tdata => AddDataInListBox(tdata, false);
+        }
+
+        private void AddDataInListBox(byte[] data, bool rxOrTx)
+        {
+            if (!LogListBox.CheckAccess())
+            {
+                LogListBox.Dispatcher.Invoke(new Action<byte[], bool>(AddDataInListBox), data, rxOrTx);
+            }
+            else
+            {
+                string bytes = string.Join(" ", data.Select(i => i.ToString("X2")));
+                if (rxOrTx) LogListBox.Items.Add($"{DateTime.Now.ToString("HH:mm:ss")} TI->PC: " + bytes);
+                else LogListBox.Items.Add($"{DateTime.Now.ToString("HH:mm:ss")} PC->TI: " + bytes);
+
+            }
         }
     }
 }

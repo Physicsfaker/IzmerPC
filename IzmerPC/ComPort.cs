@@ -15,8 +15,9 @@ namespace IzmerPC
     {
         private static SerialPort currentSerial { get; set; } //хранит ком порт
 
-        public delegate void DataReadMetods(string packg);
-        public static event DataReadMetods NewDataRecived;
+        public delegate void DataRxTxMetods(byte[] packg);
+        public static event DataRxTxMetods NewDataRecived;
+        public static event DataRxTxMetods NewDataTransfered;
 
         static ComPort()
         {
@@ -28,12 +29,11 @@ namespace IzmerPC
         {
             if (currentSerial.IsOpen) currentSerial.Close();
 
-            currentSerial.Close();
             currentSerial.PortName = text;
             currentSerial.BaudRate = baudRate;
             currentSerial.Parity = Parity.None;
             currentSerial.DataBits = 8;
-            currentSerial.StopBits = StopBits.One; 
+            currentSerial.StopBits = StopBits.One;
             currentSerial.Handshake = Handshake.None;
             currentSerial.RtsEnable = true;
             ReadTimeout = 500;
@@ -44,26 +44,30 @@ namespace IzmerPC
             {
                 MessageBox.Show($"Доступ к порту '{CurrentPort}' закрыт.");
             }
+            catch(System.IO.IOException)
+            {
+                MessageBox.Show($"Порт '{CurrentPort}' не существует.");
+            }
         }
 
         private static async void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e)
         {
-            Task<string> comReadTask = ComReadTaskMetod();
-            NewDataRecived(await comReadTask); 
+            Task<byte[]> comReadTask = ComReadTaskMetod();
+            NewDataRecived(await comReadTask);
         }
 
-        static Task<string> ComReadTaskMetod()
+        static Task<byte[]> ComReadTaskMetod()
         {
-            return Task.Run(() => 
+            return Task.Run(() =>
             {
-                var mess = "";
-                if (!IsOpen) return mess;
+                byte[] reciveBytes = new byte[currentSerial.BytesToRead];
+                if (!IsOpen) return reciveBytes;
                 while (currentSerial.BytesToRead > 0)
                 {
-                    mess = Read();
+                    currentSerial.Read(reciveBytes, 0, currentSerial.BytesToRead);
                     //Task.Delay(200); // give the device time to send data
                 }
-                return mess;
+                return reciveBytes;
             });
         }
 
@@ -91,8 +95,10 @@ namespace IzmerPC
         public static string[] GetPorts() => SerialPort.GetPortNames();          // получить список всех доступных портов
         public static bool IsOpen => currentSerial.IsOpen;
         public static void Close() => currentSerial.Close();
-        public static string Read() => currentSerial.ReadExisting();
-        public static void Write(string bytes) => currentSerial.Write(bytes);
-        public static void Write(byte[] bytes) => currentSerial.Write(bytes, 0, bytes.Length);
+        public static void Write(byte[] bytes)
+        {
+            currentSerial.Write(bytes, 0, bytes.Length);
+            NewDataTransfered(bytes);
+        }
     }
 }
