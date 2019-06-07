@@ -9,9 +9,13 @@ namespace IzmerPC
 
         private static string com;
         private static int baudRate;
+        private static bool oldversion;
+        private static bool logining;
 
         public static string Com { get => com; set { com = value; SaveChanges(); } }
         public static int BaudRate { get => baudRate; set { baudRate = value; SaveChanges(); } }
+        public static bool Oldversion { get => oldversion; set { oldversion = value; SaveChanges(); } }
+        public static bool Logining { get => logining; set { logining = value; SaveChanges(); } }
 
         static Settings()
         {
@@ -20,6 +24,8 @@ namespace IzmerPC
                 using (FileStream fstream = new FileStream($"settings.dat", FileMode.CreateNew)) { }
                     com = "COM1";
                     baudRate = 115200;
+                    oldversion = false;
+                    logining = false;
                     SaveChanges();
             }
             catch (IOException)
@@ -28,6 +34,8 @@ namespace IzmerPC
                 {
                     com = sr.ReadLine();
                     baudRate = Convert.ToInt32(sr.ReadLine());
+                    oldversion = Convert.ToBoolean(sr.ReadLine());
+                    logining = Convert.ToBoolean(sr.ReadLine());
                 }
             }
         }
@@ -38,6 +46,8 @@ namespace IzmerPC
             {
                 sw.WriteLine(Com);
                 sw.WriteLine(BaudRate.ToString());
+                sw.WriteLine(Oldversion);
+                sw.WriteLine(Logining);
             }
         }
     }

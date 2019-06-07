@@ -14,6 +14,7 @@ namespace IzmerPC
     public static class ComPort
     {
         private static SerialPort currentSerial { get; set; } //хранит ком порт
+        public static bool wasAnswer_flag { get; private set; }  //флаг был ли ответ после отправки команды
 
         public delegate void DataRxTxMetods(byte[] packg);
         public static event DataRxTxMetods NewDataRecived;
@@ -48,12 +49,15 @@ namespace IzmerPC
             {
                 MessageBox.Show($"Порт '{CurrentPort}' не существует.");
             }
+
+            wasAnswer_flag = true;
         }
 
         private static async void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e)
         {
             Task<byte[]> comReadTask = ComReadTaskMetod();
             NewDataRecived(await comReadTask);
+            wasAnswer_flag = true;
         }
 
         static Task<byte[]> ComReadTaskMetod()
@@ -65,7 +69,6 @@ namespace IzmerPC
                 while (currentSerial.BytesToRead > 0)
                 {
                     currentSerial.Read(reciveBytes, 0, currentSerial.BytesToRead);
-                    //Task.Delay(200); // give the device time to send data
                 }
                 return reciveBytes;
             });
@@ -97,6 +100,7 @@ namespace IzmerPC
         public static void Close() => currentSerial.Close();
         public static void Write(byte[] bytes)
         {
+            wasAnswer_flag = false;
             currentSerial.Write(bytes, 0, bytes.Length);
             NewDataTransfered(bytes);
         }

@@ -1,0 +1,75 @@
+﻿<Window
+    x:Class="IzmerPC.SettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:IzmerPC"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="                                                             Настройки"
+    Width="480"
+    Height="320"
+    Background="#FF342C2C"
+    ResizeMode="NoResize"
+    Topmost="True"
+    WindowStartupLocation="CenterScreen"
+    WindowStyle="ToolWindow"
+    mc:Ignorable="d">
+    <Grid>
+        <ComboBox
+            x:Name="BaudrateComboBox"
+            Width="220"
+            Height="27"
+            Margin="220,46,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            DropDownClosed="BaudrateComboBox_DropDownClosed"
+            DropDownOpened="BaudrateComboBox_DropDownOpened"
+            FontFamily="Verdana"
+            FontSize="14"
+            FontWeight="Bold" />
+        <CheckBox
+            x:Name="VersionCheckBox"
+            Margin="220,106,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Checked="VersionCheckBox_Checked"
+            Content="Версия ПО ТИ  = 1.48"
+            FontFamily="Verdana"
+            FontSize="14"
+            FontWeight="Bold"
+            Foreground="White"
+            Unchecked="VersionCheckBox_Unchecked" />
+        <Button
+            Width="160"
+            Height="48"
+            Margin="160,215,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Click="Button_Click"
+            Content="Готово"
+            FontFamily="Verdana"
+            FontSize="14"
+            FontWeight="Bold" />
+        <Label
+            Margin="37,46,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Content="Скорость обмена:"
+            FontFamily="Verdana"
+            FontSize="14"
+            FontWeight="Bold"
+            Foreground="White" />
+        <CheckBox
+            x:Name="LogsEnabledCheckBox"
+            Margin="220,143,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Checked="LogsEnabledCheckBox_Checked"
+            Content="Логирование"
+            FontFamily="Verdana"
+            FontSize="14"
+            FontWeight="Bold"
+            Foreground="White"
+            Unchecked="LogsEnabledCheckBox_Unchecked" />
+    </Grid>
+</Window>
