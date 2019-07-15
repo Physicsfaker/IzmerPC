@@ -22,34 +22,34 @@ namespace IzmerPC
     public partial class MainWindow : Window
     {
         public static RoutedCommand DebugKey_Command = new RoutedCommand(); //событие по вызову дебаг окна по нажатию клавишь
+        private int connectAttempts = 3; //флаг того что был ответ на команду
+        private int commandQueue = 0;
+
+        int[] pArr1 = { 100, 6000, 10048, 12224, 14784, 16896, 19456, 21952, 23744, 27200, 33344, 36928, 38400, 40064, //arr
+                                42170, 43728, 49152, 54208, 58944, 60096, 62656, 63360, 64448, 64789, 65132, 65472 };
+        double[] pArr2 = { 0.01, 0.1, 2.1, 4.0, 7.0, 10.0, 15.0, 20.0, 25.0, 35.0, 60.0, 80.0, 90.0, 100.0, 130.0, 200.0, //ar1
+                                300.0, 500.0, 800.0, 1000.0, 2000.0, 3000.0, 5700.0, 10000.0, 50000.0, 100000.0 };
 
         public MainWindow()
         {
             InitializeComponent();
             Closing += MainWindow_Closing;
-            ComPort.NewDataRecived += rdata => WriteLog(rdata, true);
-            ComPort.NewDataTransfered += tdata => WriteLog(tdata, false);
-            ComPort.NewDataRecived += rdata => BytesAnalyser.Manager(rdata);
 
+            #region COM_INIT and COM_EVENTS
+            ComPort.NewDataRecived += rdata => WriteLog(rdata, true);
+            ComPort.NewDataRecived += rdata => Manager(rdata);
+            ComPort.NewDataTransfered += tdata => WriteLog(tdata, false);
             ComPortBox.Items.Add(Settings.Com);
             ComPortBox.SelectedIndex = 0;
             ComPort.InitComPort(Settings.Com, Settings.BaudRate);
+            #endregion
 
             #region SendTimerInit
-            System.Windows.Threading.DispatcherTimer dispatcherTimer = new System.Windows.Threading.DispatcherTimer();
-            dispatcherTimer.Tick += new EventHandler(DataTransferTimer_Tick);
-            dispatcherTimer.Interval = new TimeSpan(0, 0, 0, 0, 250); //инит таймера отправки: дни; часы; минуты; секунды; милсек.
-            dispatcherTimer.Start();
+            System.Windows.Threading.DispatcherTimer interrogatorTimer = new System.Windows.Threading.DispatcherTimer();
+            interrogatorTimer.Tick += new EventHandler(DataTransferTimer_Tick);
+            interrogatorTimer.Interval = new TimeSpan(0, 0, 0, 0, 250); //инит таймера отправки: дни; часы; минуты; секунды; милсек.
+            interrogatorTimer.Start();
             #endregion
-            byte[] A = { 0xAB, 0x10 };
-            //ComPort.Write(A);
-        }
-
-        private void DataTransferTimer_Tick(object sender, EventArgs e)
-        {
-            if (!ComPort.IsOpen || ComPort.wasAnswer_flag == false) return;
-            byte[] X = { 0xAB, 0x07 };
-            ComPort.Write(X);
         }
 
         #region ComPortBox_Events
@@ -72,6 +72,7 @@ namespace IzmerPC
         }
         #endregion
 
+        #region App Closing
         private void MainWindow_Closing(object sender, RoutedEventArgs args) //действия при закрытии приложения через меню
         {
             if (MessageBoxResult.No == MessageBox.Show("Вы действительно хотите закрыть программу?", "Закрытие клиента", MessageBoxButton.YesNo, MessageBoxImage.Warning)) return;
@@ -88,6 +89,9 @@ namespace IzmerPC
             ComPort.Close();
             App.Current.Shutdown();
         }
+        #endregion
+
+        #region Windows
         private void ShowDebagWin(object sender, ExecutedRoutedEventArgs e) //метод на событие по вызову дебаг окна по нажатию клавишь
         {
             LogWindow secondWindow = new LogWindow();
@@ -103,25 +107,115 @@ namespace IzmerPC
             AboutProgramWindow secondWindow = new AboutProgramWindow();
             secondWindow.Show();
         }
+        #endregion
+
+        private void DataTransferTimer_Tick(object sender, EventArgs e) //порядок опроса ТИ
+        {
+            if (ComPort.IsOpen)
+            {
+                switch (commandQueue)
+                {
+                    case 0: BytesOperations.State_pressure(); break;
+                    case 1: BytesOperations.State_valve(); break;
+                    //case 2: BytesOperations.State_electrometer(); break;
+                    //case 3: BytesOperations.State_full(); break;
+                    default: commandQueue = 0; goto case 0;
+                }
+            }
+            if (connectAttempts >= 1 && connectAttempts <= 3) { ConnectLabel.Foreground = Brushes.Green; ConnectLabel.Content = "Связь: Установленна"; }
+            if (connectAttempts > 0) connectAttempts--;
+            else { ConnectLabel.Foreground = Brushes.Red; ConnectLabel.Content = "Связь: Отсутствует"; }
+        }
+
+        void Manager(byte[] reciveBytes)
+        {
+            if (reciveBytes.Length == 0) return; //защитка, хз почему-то иногда может прийти "ничего" ¯\_(ツ)_/¯
+
+            #region 2F and 2D script
+            if (reciveBytes[0] == 0x2D && reciveBytes.Length == 1)
+            {
+                ConnectLabel.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(delegate ()
+                 {
+                     connectAttempts = 8;
+                     ConnectLabel.Foreground = Brushes.Yellow; ConnectLabel.Content = "Связь: подождите немного";
+                 })); return;
+            }
+            if (reciveBytes[0] == 0x2F && reciveBytes.Length == 1)
+            {
+                ConnectLabel.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(delegate ()
+                 {
+                     connectAttempts = 3;
+                     ConnectLabel.Foreground = Brushes.Green; ConnectLabel.Content = "Связь: Установленна"; BytesOperations.Trash_off();
+                 })); return;
+            }
+            #endregion
+
+            switch (commandQueue)
+            {
+                case 0:
+                    if (reciveBytes[0] == 0xAB && reciveBytes.Length == 12)
+                    {
+                        double[] pressure = new double[2] { reciveBytes[8] + reciveBytes[9] * 256, reciveBytes[10] + reciveBytes[11] * 256 }; //хранит п1 и п2 соответственно
+
+                        for (int n = 0; n < pressure.Length; n++)
+                        {
+                            if (pressure[n] < 100) pressure[n] = 100;
+                            if (pressure[n] > 65471) pressure[n] = 65471;
+                            for (int i = 0; i < pArr1.Length; i++)
+                            {
+                                if (pressure[n] < pArr1[i])
+                                {
+                                    pressure[n] = ((pArr2[i] - pArr2[i - 1]) / (pArr1[i] - pArr1[i - 1]) * pressure[n] + pArr2[i - 1]
+                                        - (pArr2[i] - pArr2[i - 1]) / (pArr1[i] - pArr1[i - 1]) * pArr1[i - 1]);
+                                    break;
+                                }
+                            }
+                            if (pressure[n] > 90000) pressure[n] = 100000;
+                        }
+
+                        ConnectLabel.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(delegate ()
+                        {
+                            P1Label.Content = $"P1 = {pressure[0]:0.0}  Па";
+                            P3Label.Content = $"P3 = {pressure[1]:0.0}  Па";
+                        }));
+
+                        commandQueue++; connectAttempts = 3;
+                    }
+                    break;  //State_pressure();
+                case 1:
+                    if (reciveBytes[0] == 0xAB && reciveBytes.Length == 5)
+                    {
+
+                    }
+                    break;
+                //case 2: BytesOperations.State_electrometer(); break;
+                //case 3: BytesOperations.State_full(); break;
+                //default: commandQueue = 0; goto case 0; break;
+                default: break;
+            }
+        }
+
         private void WriteLog(byte[] reciveBytes, bool rxOrTx) //запись логов в файл
         {
             if (!Directory.Exists(@"logs"))
             {
                 Directory.CreateDirectory(@"logs");
-            }/*
-            using (StreamWriter logWriter = new StreamWriter(@"logs\" + $"{DateTime.Now.ToString("dd_MMMM_yyyy")}_log.txt", true, Encoding.Default))
-            {
-                string bytes = string.Join(" ", reciveBytes.Select(i => i.ToString("X2")));
-                if (rxOrTx) logWriter.WriteLine($"{DateTime.Now.ToString("HH:mm:ss")} TI->PC: " + bytes);
-                else logWriter.WriteLine($"{DateTime.Now.ToString("HH:mm:ss")} PC->TI: " + bytes);
-            }*/
+            }
+            if (Settings.Logining)
+                using (FileStream logWriter = new FileStream(@"logs\" + $"{DateTime.Now.ToString("dd_MMMM_yyyy")}_log.txt", FileMode.Append, FileAccess.Write, FileShare.Read))
+                {
+                    byte[] input;
+                    string bytes = string.Join(" ", reciveBytes.Select(i => i.ToString("X2")));
+                    if (rxOrTx) input = Encoding.Default.GetBytes($"{DateTime.Now.ToString("HH:mm:ss")} TI->PC: " + bytes + Environment.NewLine);
+                    else input = Encoding.Default.GetBytes($"{DateTime.Now.ToString("HH:mm:ss")} PC->TI: " + bytes + Environment.NewLine);
+                    logWriter.Write(input, 0, input.Length);
+                }
         }
-
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
         {
             //ComPort.Write(WriteBox.Text);
-            byte[] X = { 0xAB, 0x06 };
+            byte[] X = { 0xAB, 0x10 };
             ComPort.Write(X);
         }
 

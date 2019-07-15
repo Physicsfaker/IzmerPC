@@ -13,8 +13,8 @@
         <ListBox
             x:Name="LogListBox"
             Width="505"
-            Height="407"
-            Margin="10,43,0,0"
+            Height="400"
+            Margin="10,50,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top" />
     </Grid>

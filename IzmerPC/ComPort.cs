@@ -14,7 +14,6 @@ namespace IzmerPC
     public static class ComPort
     {
         private static SerialPort currentSerial { get; set; } //хранит ком порт
-        public static bool wasAnswer_flag { get; private set; }  //флаг был ли ответ после отправки команды
 
         public delegate void DataRxTxMetods(byte[] packg);
         public static event DataRxTxMetods NewDataRecived;
@@ -37,71 +36,45 @@ namespace IzmerPC
             currentSerial.StopBits = StopBits.One;
             currentSerial.Handshake = Handshake.None;
             currentSerial.RtsEnable = true;
-            ReadTimeout = 500;
-            WriteTimeout = 500;
+            currentSerial.ReadTimeout = 500;
+            currentSerial.WriteTimeout = 500;
 
             try { currentSerial.Open(); }
             catch (UnauthorizedAccessException)
             {
                 MessageBox.Show($"Доступ к порту '{CurrentPort}' закрыт.");
             }
-            catch(System.IO.IOException)
+            catch (System.IO.IOException)
             {
                 MessageBox.Show($"Порт '{CurrentPort}' не существует.");
             }
-
-            wasAnswer_flag = true;
         }
 
         private static async void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e)
         {
-            Task<byte[]> comReadTask = ComReadTaskMetod();
-            NewDataRecived(await comReadTask);
-            wasAnswer_flag = true;
-        }
-
-        static Task<byte[]> ComReadTaskMetod()
-        {
-            return Task.Run(() =>
-            {
+            if (!IsOpen) return;
+            NewDataRecived(packg: await Task.Run(() => {
                 byte[] reciveBytes = new byte[currentSerial.BytesToRead];
-                if (!IsOpen) return reciveBytes;
-                while (currentSerial.BytesToRead > 0)
-                {
-                    currentSerial.Read(reciveBytes, 0, currentSerial.BytesToRead);
-                }
+                while (currentSerial.BytesToRead > 0) { currentSerial.Read(reciveBytes, 0, currentSerial.BytesToRead); }
                 return reciveBytes;
-            });
+            }));
         }
 
-        public static int ReadTimeout //время чтения
-        {
-            get => currentSerial.ReadTimeout;
-            set
-            {
-                if (value > 0 && value < 1000) currentSerial.ReadTimeout = value;
-                if (value < 0) currentSerial.ReadTimeout = 1;
-                if (value > 1000) currentSerial.ReadTimeout = 1000;
-            }
-        }
-        public static int WriteTimeout //время отправки
-        {
-            get => currentSerial.WriteTimeout;
-            set
-            {
-                if (value > 0 && value < 1000) currentSerial.WriteTimeout = value;
-                if (value < 0) currentSerial.WriteTimeout = 1;
-                if (value > 1000) currentSerial.WriteTimeout = 1000;
-            }
-        }
         public static string CurrentPort => currentSerial.PortName.ToString(); //получить имя текущего порта
         public static string[] GetPorts() => SerialPort.GetPortNames();          // получить список всех доступных портов
         public static bool IsOpen => currentSerial.IsOpen;
         public static void Close() => currentSerial.Close();
         public static void Write(byte[] bytes)
         {
-            wasAnswer_flag = false;
-            currentSerial.Write(bytes, 0, bytes.Length);
+            try { currentSerial.Write(bytes, 0, bytes.Length); }
+            catch (UnauthorizedAccessException)
+            {
+                MessageBox.Show($"Доступ к порту '{CurrentPort}' закрыт.");
+            }
+            catch (System.IO.IOException)
+            {
+                MessageBox.Show($"Порт '{CurrentPort}' не существует.");
+            }
             NewDataTransfered(bytes);
         }
     }

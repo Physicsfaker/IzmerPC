@@ -22,12 +22,11 @@
             Command="local:MainWindow.DebugKey_Command"
             Modifiers="Ctrl+Alt" />
     </Window.InputBindings>
-    <Grid Margin="0" Background="#FF252222">
+    <Grid Margin="0,0,0,42" Background="#FF252222">
         <Grid.RowDefinitions>
             <RowDefinition Height="370*" />
             <RowDefinition Height="147*" />
-            <RowDefinition Height="184*" />
-            <RowDefinition Height="37*" />
+            <RowDefinition Height="221*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="50*" />
@@ -178,5 +177,37 @@
                 Content="S"
                 RenderTransformOrigin="0.522,0.515" />
         </Grid>
+        <Label
+            x:Name="ConnectLabel"
+            Grid.Row="2"
+            Margin="135,72,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Content="Связь: Отсутствует"
+            Foreground="#FFFB0000" />
+        <Label
+            x:Name="P1Label"
+            Grid.Row="1"
+            Grid.Column="1"
+            Width="170"
+            Margin="37,27,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Content="P1 = NONE"
+            FontSize="20"
+            FontWeight="Bold"
+            Foreground="#FF41B021" />
+        <Label
+            x:Name="P3Label"
+            Grid.Row="1"
+            Grid.Column="1"
+            Width="170"
+            Margin="37,69,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Content="P3 = NONE"
+            FontSize="20"
+            FontWeight="Bold"
+            Foreground="#FF41B021" />
     </Grid>
 </Window>

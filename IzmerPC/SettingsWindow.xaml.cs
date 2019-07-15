@@ -35,7 +35,7 @@ namespace IzmerPC
             BaudrateComboBox.Items.Add($"57600");
             BaudrateComboBox.Items.Add($"38400");
             BaudrateComboBox.Items.Add($"19200");
-            BaudrateComboBox.Items.Add($"9600");
+            BaudrateComboBox.Items.Add($"9600"); 
         }
 
         private void BaudrateComboBox_DropDownClosed(object sender, EventArgs e)
